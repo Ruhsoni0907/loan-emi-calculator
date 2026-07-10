@@ -1,30 +1,17 @@
 /**
  * EMI Calculation Engine — pure, framework-agnostic module.
  *
- * Formulas used:
+ * Formulas:
  *   EMI = [P × R × (1+R)^N] / [(1+R)^N − 1]
  *   where P = principal, R = monthly rate, N = tenure in months.
- *
- * All monetary values are rounded to 2 decimal places at the output level.
- * Intermediate calculations use full floating-point precision.
  */
 
-/**
- * Validate that a number is a finite, positive value.
- * @param {*} value
- * @returns {boolean}
- */
 function isPositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
 /**
  * Calculate the equated monthly installment (EMI).
- *
- * @param {number} principal        – Loan amount (> 0)
- * @param {number} annualRatePercent – Annual interest rate in % (>= 0)
- * @param {number} tenureMonths     – Loan tenure in months (> 0)
- * @returns {number|null} EMI amount rounded to 2 dp, or null on invalid input
  */
 export function calculateEMI(principal, annualRatePercent, tenureMonths) {
   if (!isPositiveNumber(principal) || principal <= 0) return null;
@@ -35,7 +22,6 @@ export function calculateEMI(principal, annualRatePercent, tenureMonths) {
   const N = tenureMonths;
   const P = principal;
 
-  // Handle 0% interest: simple division
   if (R === 0) {
     return Math.round((P / N) * 100) / 100;
   }
@@ -47,15 +33,7 @@ export function calculateEMI(principal, annualRatePercent, tenureMonths) {
 
 /**
  * Generate a month-by-month amortization schedule.
- *
- * The last month's interest is adjusted so the closing balance is exactly 0,
- * preventing rounding drift.
- *
- * @param {number} principal
- * @param {number} annualRatePercent
- * @param {number} tenureMonths
- * @returns {Array<Object>|null} Array of { month, year, opening, emi,
- *   principalComponent, interestComponent, closing } or null on invalid input
+ * Last month is adjusted so closing balance is exactly 0.
  */
 export function generateAmortizationSchedule(principal, annualRatePercent, tenureMonths) {
   if (!isPositiveNumber(principal) || principal <= 0) return null;
@@ -74,7 +52,6 @@ export function generateAmortizationSchedule(principal, annualRatePercent, tenur
     const opening = balance;
     const interestComponent = R === 0 ? 0 : Math.round(balance * R * 100) / 100;
 
-    // Last month: adjust to close out exactly
     if (month === tenureMonths) {
       const principalComponent = Math.round(opening * 100) / 100;
       schedule.push({
@@ -107,11 +84,7 @@ export function generateAmortizationSchedule(principal, annualRatePercent, tenur
 }
 
 /**
- * Aggregate a monthly schedule into yearly totals.
- *
- * @param {Array<Object>} schedule – Output of generateAmortizationSchedule
- * @returns {Array<Object>|null} Array of { year, opening, closing, emi,
- *   principalComponent, interestComponent, months } or null on invalid input
+ * Aggregate monthly schedule into yearly totals.
  */
 export function aggregateYearly(schedule) {
   if (!Array.isArray(schedule) || schedule.length === 0) return null;
@@ -143,7 +116,6 @@ export function aggregateYearly(schedule) {
 
   if (yearData) yearly.push(yearData);
 
-  // Round aggregated values
   return yearly.map((y) => ({
     ...y,
     emi: Math.round(y.emi * 100) / 100,
@@ -154,10 +126,6 @@ export function aggregateYearly(schedule) {
 
 /**
  * Compare multiple loan scenarios.
- *
- * @param {Array<Object>} scenarios – Array of { principal, rate, tenureMonths, label }
- * @returns {Array<Object>|null} Each entry gains: emi, totalInterest, totalPayable,
- *   deltaInterest (vs best), deltaEmi (vs best), deltaInterestVsFirst, deltaEmiVsFirst
  */
 export function compareLoans(scenarios) {
   if (!Array.isArray(scenarios) || scenarios.length === 0) return null;
@@ -169,15 +137,9 @@ export function compareLoans(scenarios) {
     const totalPayable = Math.round(emi * s.tenureMonths * 100) / 100;
     const totalInterest = Math.round((totalPayable - s.principal) * 100) / 100;
 
-    return {
-      ...s,
-      emi,
-      totalInterest,
-      totalPayable,
-    };
+    return { ...s, emi, totalInterest, totalPayable };
   });
 
-  // Find the scenario with lowest total interest for delta reference
   const validResults = results.filter((r) => r.totalInterest !== null);
   if (validResults.length === 0) return results;
 
@@ -185,13 +147,12 @@ export function compareLoans(scenarios) {
     (best, r, i) => (r.totalInterest < validResults[best].totalInterest ? i : best),
     0
   );
-  const firstIdx = 0;
 
   return results.map((r, i) => {
     if (r.totalInterest === null) return { ...r, deltaInterest: null, deltaEmi: null };
 
     const best = validResults[bestIdx];
-    const first = validResults[firstIdx];
+    const first = validResults[0];
 
     return {
       ...r,
@@ -202,4 +163,151 @@ export function compareLoans(scenarios) {
       isBestInterest: i === bestIdx,
     };
   });
+}
+
+/**
+ * Format currency in Indian notation.
+ */
+export function formatINR(amount, compact = false) {
+  if (amount === null || amount === undefined) return '—';
+  if (compact) {
+    if (amount >= 10000000) return '₹' + (amount / 10000000).toFixed(1) + ' Cr';
+    if (amount >= 100000) return '₹' + (amount / 100000).toFixed(1) + ' L';
+    if (amount >= 1000) return '₹' + (amount / 1000).toFixed(1) + 'K';
+  }
+  return '₹' + amount.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+export function formatINRExact(amount) {
+  if (amount === null || amount === undefined) return '—';
+  return '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Validate loan inputs.
+ */
+export function validateInputs(principal, annualRate, tenureMonths) {
+  const errors = {};
+  if (!principal || principal <= 0) errors.principal = 'Enter a valid loan amount';
+  else if (principal < 10000) errors.principal = 'Minimum loan amount is ₹10,000';
+  else if (principal > 100000000) errors.principal = 'Maximum loan amount is ₹10 Crore';
+
+  if (annualRate === undefined || annualRate === null || annualRate < 0) errors.annualRate = 'Enter a valid interest rate';
+  else if (annualRate > 50) errors.annualRate = 'Rate seems too high (max 50%)';
+
+  if (!tenureMonths || tenureMonths <= 0) errors.tenureMonths = 'Enter a valid tenure';
+  else if (tenureMonths > 360) errors.tenureMonths = 'Maximum tenure is 30 years (360 months)';
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+/**
+ * Preset loan templates.
+ */
+export const LOAN_PRESETS = [
+  {
+    id: 'home',
+    name: 'Home Loan',
+    icon: '🏠',
+    description: 'Property purchase',
+    principal: 5000000,
+    rate: 8.5,
+    tenureYears: 20,
+    color: '#0A2540',
+  },
+  {
+    id: 'car',
+    name: 'Car Loan',
+    icon: '🚗',
+    description: 'Vehicle financing',
+    principal: 800000,
+    rate: 9.0,
+    tenureYears: 5,
+    color: '#00D4AA',
+  },
+  {
+    id: 'education',
+    name: 'Education Loan',
+    icon: '🎓',
+    description: 'Higher education',
+    principal: 2000000,
+    rate: 10.5,
+    tenureYears: 10,
+    color: '#7C4DFF',
+  },
+  {
+    id: 'personal',
+    name: 'Personal Loan',
+    icon: '💰',
+    description: 'Flexible usage',
+    principal: 500000,
+    rate: 12.0,
+    tenureYears: 3,
+    color: '#FF6B35',
+  },
+];
+
+/**
+ * Export schedule as CSV.
+ */
+export function exportScheduleCSV(schedule, filename = 'amortization-schedule.csv') {
+  if (!schedule || schedule.length === 0) return;
+
+  const headers = ['Month', 'Year', 'Opening Balance', 'EMI', 'Principal', 'Interest', 'Closing Balance'];
+  const rows = schedule.map(r => [
+    r.month,
+    r.year,
+    r.opening.toFixed(2),
+    r.emi.toFixed(2),
+    r.principalComponent.toFixed(2),
+    r.interestComponent.toFixed(2),
+    r.closing.toFixed(2),
+  ]);
+
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Parse URL search params into loan values.
+ */
+export function parseLoanFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const principal = parseFloat(params.get('p'));
+  const rate = parseFloat(params.get('r'));
+  const tenure = parseFloat(params.get('t'));
+  const mode = params.get('m'); // 'years' or 'months'
+
+  if (principal > 0 && rate >= 0 && tenure > 0) {
+    return {
+      principal,
+      annualRate: rate,
+      tenureYears: mode === 'months' ? Math.round(tenure / 12) : tenure,
+      tenureMonths: mode === 'months' ? tenure : tenure * 12,
+    };
+  }
+  return null;
+}
+
+/**
+ * Generate shareable URL.
+ */
+export function generateShareURL(principal, annualRate, tenureMonths) {
+  const base = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({
+    p: principal.toString(),
+    r: annualRate.toString(),
+    t: tenureMonths.toString(),
+    m: 'months',
+  });
+  return `${base}?${params.toString()}`;
 }

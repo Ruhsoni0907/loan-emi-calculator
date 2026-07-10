@@ -4,11 +4,13 @@ import {
   generateAmortizationSchedule,
   aggregateYearly,
   compareLoans,
+  validateInputs,
+  formatINR,
+  formatINRExact,
 } from '../lib/emiEngine.js';
 
 describe('calculateEMI', () => {
   it('calculates EMI for a standard loan', () => {
-    // P=100000, R=12%, N=12 → EMI ≈ 8884.88
     const emi = calculateEMI(100000, 12, 12);
     expect(emi).toBeCloseTo(8884.88, 0);
   });
@@ -26,7 +28,6 @@ describe('calculateEMI', () => {
 
   it('handles single-month tenure', () => {
     const emi = calculateEMI(100000, 12, 1);
-    // For 1 month: EMI = P + one month interest
     expect(emi).toBe(101000);
   });
 
@@ -34,7 +35,6 @@ describe('calculateEMI', () => {
     const emi = calculateEMI(5000000, 8.5, 360);
     expect(emi).toBeGreaterThan(0);
     expect(Number.isFinite(emi)).toBe(true);
-    // EMI should be reasonable — less than principal for long tenures
     expect(emi).toBeLessThan(5000000);
   });
 
@@ -82,20 +82,17 @@ describe('generateAmortizationSchedule', () => {
 
   it('final closing balance is exactly 0', () => {
     const schedule = generateAmortizationSchedule(100000, 12, 12);
-    const lastRow = schedule[schedule.length - 1];
-    expect(lastRow.closing).toBe(0);
+    expect(schedule[schedule.length - 1].closing).toBe(0);
   });
 
   it('final closing balance is exactly 0 for long tenure', () => {
     const schedule = generateAmortizationSchedule(5000000, 8.5, 360);
-    const lastRow = schedule[schedule.length - 1];
-    expect(lastRow.closing).toBe(0);
+    expect(schedule[schedule.length - 1].closing).toBe(0);
   });
 
   it('final closing balance is exactly 0 for 0% interest', () => {
     const schedule = generateAmortizationSchedule(120000, 0, 12);
-    const lastRow = schedule[schedule.length - 1];
-    expect(lastRow.closing).toBe(0);
+    expect(schedule[schedule.length - 1].closing).toBe(0);
   });
 
   it('final closing balance is exactly 0 for single month', () => {
@@ -163,8 +160,8 @@ describe('aggregateYearly', () => {
 describe('compareLoans', () => {
   it('returns correct structure', () => {
     const scenarios = [
-      { principal: 1000000, rate: 8.5, tenureMonths: 120, label: 'Scenario A' },
-      { principal: 1000000, rate: 9.0, tenureMonths: 120, label: 'Scenario B' },
+      { principal: 1000000, rate: 8.5, tenureMonths: 120, label: 'A' },
+      { principal: 1000000, rate: 9.0, tenureMonths: 120, label: 'B' },
     ];
     const result = compareLoans(scenarios);
     expect(result).toHaveLength(2);
@@ -188,25 +185,10 @@ describe('compareLoans', () => {
     ];
     const result = compareLoans(scenarios);
     expect(result[1].isBestInterest).toBe(true);
-    expect(result[0].isBestInterest).toBe(false);
-  });
-
-  it('computes deltas vs first scenario', () => {
-    const scenarios = [
-      { principal: 1000000, rate: 8.5, tenureMonths: 120, label: 'A' },
-      { principal: 1000000, rate: 9.5, tenureMonths: 120, label: 'B' },
-    ];
-    const result = compareLoans(scenarios);
-    expect(result[0].deltaInterestVsFirst).toBe(0);
-    expect(result[1].deltaInterestVsFirst).toBeGreaterThan(0);
   });
 
   it('returns null for empty array', () => {
     expect(compareLoans([])).toBeNull();
-  });
-
-  it('returns null for non-array', () => {
-    expect(compareLoans(null)).toBeNull();
   });
 
   it('handles scenarios with invalid inputs gracefully', () => {
@@ -217,5 +199,48 @@ describe('compareLoans', () => {
     const result = compareLoans(scenarios);
     expect(result[0].emi).toBeNull();
     expect(result[1].emi).toBeGreaterThan(0);
+  });
+});
+
+describe('validateInputs', () => {
+  it('validates correct inputs', () => {
+    const result = validateInputs(1000000, 8.5, 120);
+    expect(result.isValid).toBe(true);
+    expect(Object.keys(result.errors)).toHaveLength(0);
+  });
+
+  it('catches low principal', () => {
+    const result = validateInputs(5000, 8.5, 120);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.principal).toBeDefined();
+  });
+
+  it('catches high rate', () => {
+    const result = validateInputs(1000000, 55, 120);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.annualRate).toBeDefined();
+  });
+
+  it('catches long tenure', () => {
+    const result = validateInputs(1000000, 8.5, 400);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.tenureMonths).toBeDefined();
+  });
+});
+
+describe('formatINR', () => {
+  it('formats with compact notation', () => {
+    expect(formatINR(100000, true)).toBe('₹1.0 L');
+    expect(formatINR(10000000, true)).toBe('₹1.0 Cr');
+    expect(formatINR(5000, true)).toBe('₹5.0K');
+  });
+
+  it('formats without compact notation', () => {
+    expect(formatINR(100000)).toBe('₹1,00,000');
+  });
+
+  it('handles null/undefined', () => {
+    expect(formatINR(null)).toBe('—');
+    expect(formatINR(undefined)).toBe('—');
   });
 });

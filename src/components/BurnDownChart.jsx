@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -7,125 +7,178 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  ReferenceLine,
 } from 'recharts';
+import { formatINR } from '../lib/emiEngine.js';
 
 /**
- * BurnDownChart — Area chart showing outstanding balance and cumulative interest over time.
- *
- * Uses Recharts AreaChart with gradient fills for a polished look.
- * Data points are sampled (one per year for long tenures) to keep the chart clean.
+ * BurnDownChart — Polished area chart showing balance and cumulative interest.
  */
-export default function BurnDownChart({ schedule, tenureMode }) {
+export default function BurnDownChart({ schedule }) {
+  const [chartType, setChartType] = useState('combined'); // 'combined' | 'principal' | 'interest'
+
   const chartData = useMemo(() => {
     if (!schedule || schedule.length === 0) return [];
 
-    // For monthly view, sample at year boundaries + final month for readability
-    if (schedule.length > 24) {
-      const sampled = schedule.filter(
-        (row) => row.month === 1 || row.month === schedule.length
-      );
-      // Also include every 12th month (year-end)
-      const yearEnds = schedule.filter((row) => row.month % 12 === 0 && row !== sampled[sampled.length - 1]);
-      const merged = [...sampled, ...yearEnds]
-        .sort((a, b) => a.month - b.month)
-        .filter((row, i, arr) => i === 0 || row.month !== arr[i - 1].month);
+    // Sample for readability on long schedules
+    const sampleRate = schedule.length > 36 ? 6 : schedule.length > 12 ? 3 : 1;
+    const sampled = schedule.filter(
+      (row) => row.month === 1 || row.month === schedule.length || row.month % sampleRate === 0
+    );
 
-      return merged.map((row) => ({
-        label: `Yr ${row.year}`,
+    let cumInterest = 0;
+    let cumPrincipal = 0;
+
+    return sampled.map((row) => {
+      cumInterest += row.interestComponent;
+      cumPrincipal += row.principalComponent;
+      return {
+        label: row.month,
+        month: row.month,
         balance: row.closing,
-        interestPaid: schedule
-          .filter((r) => r.month <= row.month)
-          .reduce((sum, r) => sum + r.interestComponent, 0),
-      }));
-    }
-
-    return schedule.map((row) => ({
-      label: tenureMode === 'years' ? `M${row.month}` : `${row.month}`,
-      balance: row.closing,
-      interestPaid: schedule
-        .filter((r) => r.month <= row.month)
-        .reduce((sum, r) => sum + r.interestComponent, 0),
-    }));
-  }, [schedule, tenureMode]);
+        cumInterest: Math.round(cumInterest * 100) / 100,
+        cumPrincipal: Math.round(cumPrincipal * 100) / 100,
+        interestPaid: Math.round(cumInterest * 100) / 100,
+      };
+    });
+  }, [schedule]);
 
   if (!chartData.length) return null;
 
-  const formatCurrency = (v) =>
-    v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}K`;
+  const totalMonths = schedule.length;
+  const years = Math.floor(totalMonths / 12);
+
+  const formatYAxis = (v) => {
+    if (v >= 10000000) return `₹${(v / 10000000).toFixed(0)}Cr`;
+    if (v >= 100000) return `₹${(v / 100000).toFixed(0)}L`;
+    if (v >= 1000) return `₹${(v / 1000).toFixed(0)}K`;
+    return `₹${v}`;
+  };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
+    const data = payload[0]?.payload;
     return (
-      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-        <p className="font-medium text-ink mb-1">{label}</p>
-        {payload.map((entry) => (
-          <p key={entry.dataKey} className="font-mono text-xs" style={{ color: entry.color }}>
-            {entry.name}: ₹{entry.value?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </p>
-        ))}
+      <div className="bg-white border border-border rounded-xl shadow-xl p-4 text-sm min-w-[180px]">
+        <p className="font-bold text-ink mb-2">
+          Month {data?.month} <span className="text-ink-faint font-normal">(~Year {Math.ceil(data?.month / 12)})</span>
+        </p>
+        <div className="space-y-1.5">
+          {payload.map((entry) => (
+            <div key={entry.dataKey} className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-2 text-xs text-ink-muted">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                {entry.name}
+              </span>
+              <span className="font-mono text-xs font-semibold text-ink">
+                {formatINR(entry.value, true)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="w-full">
-      <h3 className="text-sm font-medium text-ink-muted uppercase tracking-wider mb-4">
-        Loan Burn-Down
-      </h3>
-      <div className="h-72">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold text-ink-faint uppercase tracking-wider">
+          Loan Amortization Chart
+        </h3>
+        <div className="flex items-center gap-1 bg-surface-cool rounded-lg p-0.5 border border-border">
+          {[
+            { id: 'combined', label: 'Overview' },
+            { id: 'principal', label: 'Principal' },
+            { id: 'interest', label: 'Interest' },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setChartType(id)}
+              className={`px-3 py-1 rounded-md text-[10px] font-semibold transition-all duration-200 cursor-pointer ${
+                chartType === id
+                  ? 'bg-white text-ink shadow-sm'
+                  : 'text-ink-faint hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="h-80 -ml-2">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <defs>
               <linearGradient id="gradBalance" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0D4C4A" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#0D4C4A" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#0A2540" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#0A2540" stopOpacity={0.02} />
               </linearGradient>
               <linearGradient id="gradInterest" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#E8A838" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#E8A838" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#FF6B35" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#FF6B35" stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="gradPrincipal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#00D4AA" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E3E8EE" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: '#6B7280', fontFamily: 'JetBrains Mono' }}
+              tick={{ fontSize: 10, fill: '#90A4AE', fontFamily: 'JetBrains Mono' }}
               tickLine={false}
-              axisLine={{ stroke: '#D1D5DB' }}
+              axisLine={{ stroke: '#E3E8EE' }}
+              tickFormatter={(v) => years > 5 ? `Y${Math.ceil(v / 12)}` : `M${v}`}
             />
             <YAxis
-              tickFormatter={formatCurrency}
-              tick={{ fontSize: 11, fill: '#6B7280', fontFamily: 'JetBrains Mono' }}
+              tickFormatter={formatYAxis}
+              tick={{ fontSize: 10, fill: '#90A4AE', fontFamily: 'JetBrains Mono' }}
               tickLine={false}
               axisLine={false}
-              width={60}
+              width={55}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ fontSize: 12, fontFamily: 'Inter' }}
-              iconType="circle"
-              iconSize={8}
-            />
-            <Area
-              type="monotone"
-              dataKey="balance"
-              name="Outstanding Balance"
-              stroke="#0D4C4A"
-              strokeWidth={2}
-              fill="url(#gradBalance)"
-              dot={false}
-              animationDuration={800}
-            />
-            <Area
-              type="monotone"
-              dataKey="interestPaid"
-              name="Cumulative Interest"
-              stroke="#E8A838"
-              strokeWidth={2}
-              fill="url(#gradInterest)"
-              dot={false}
-              animationDuration={800}
-            />
+
+            {(chartType === 'combined' || chartType === 'principal') && (
+              <Area
+                type="monotone"
+                dataKey="balance"
+                name="Outstanding"
+                stroke="#0A2540"
+                strokeWidth={2.5}
+                fill="url(#gradBalance)"
+                dot={false}
+                animationDuration={1000}
+              />
+            )}
+
+            {(chartType === 'combined' || chartType === 'interest') && (
+              <Area
+                type="monotone"
+                dataKey="interestPaid"
+                name="Cum. Interest"
+                stroke="#FF6B35"
+                strokeWidth={2.5}
+                fill="url(#gradInterest)"
+                dot={false}
+                animationDuration={1000}
+              />
+            )}
+
+            {chartType === 'principal' && (
+              <Area
+                type="monotone"
+                dataKey="cumPrincipal"
+                name="Cum. Principal"
+                stroke="#00D4AA"
+                strokeWidth={2.5}
+                fill="url(#gradPrincipal)"
+                dot={false}
+                animationDuration={1000}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
