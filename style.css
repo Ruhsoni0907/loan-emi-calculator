@@ -418,10 +418,6 @@ body {
 .dash-card:nth-child(4) { animation-delay: 180ms; }
 .dash-card:nth-child(5) { animation-delay: 240ms; }
 .dash-card:nth-child(6) { animation-delay: 300ms; }
-.dash-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  border-radius: 3px 3px 0 0;
-}
 .dash-card-icon {
   width: 36px; height: 36px;
   border-radius: var(--radius-md);

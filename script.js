@@ -56,7 +56,7 @@ function generateSchedule(principal, annualRate, tenureMonths, extraPayment) {
     const extra = month <= tenureMonths ? extraPayment : 0;
     let princPart = Math.round((emi + extra - interest) * 100) / 100;
     if (princPart > balance) princPart = balance;
-    balance = Math.round((balance - princPart) * 100) / 100);
+    balance = Math.round((balance - princPart) * 100) / 100;
     if (balance < 0) balance = 0;
     schedule.push({ month, year, opening: Math.round(opening * 100) / 100, emi: Math.round(emi * 100) / 100, extra, interest, principalComponent: Math.round(princPart * 100) / 100, closing: balance, totalInterestPaid: totalInt });
     if (balance === 0) break;
@@ -138,6 +138,7 @@ function render() {
   renderTable();
   updateSliderStyles();
   updateDisplayValues();
+  updateSegmentIndicators();
 }
 
 function updateDisplayValues() {
@@ -165,18 +166,21 @@ function updateDisplayValues() {
 }
 
 function renderHero() {
-  const el = document.getElementById('emi-hero');
-  if (!details) { el.innerHTML = '<p style="opacity:0.6;position:relative">Enter valid loan details</p>'; return; }
-  const tenureMonths = state.tenureMode === 'years' ? state.tenureYears * 12 : state.tenureMonths;
-  el.innerHTML = `
-    <p class="emi-hero-label">Monthly EMI</p>
-    <p class="emi-hero-value" id="emi-value" aria-live="polite">${fmtINRExact(details.emi)}</p>
-    <p class="emi-hero-sub">${details.totalMonths} months · ${state.annualRate}% p.a. · ${state.frequency}</p>
-    <div class="emi-hero-metrics">
-      <div class="hero-metric"><p class="hero-metric-label">Interest</p><p class="hero-metric-value">${fmtINR(details.totalInterest, true)}</p></div>
-      <div class="hero-metric"><p class="hero-metric-label">Total</p><p class="hero-metric-value">${fmtINR(details.totalPayable, true)}</p></div>
-      <div class="hero-metric"><p class="hero-metric-label">Fee</p><p class="hero-metric-value">${fmtINR(details.totalFee)}</p></div>
-    </div>`;
+  const valEl = document.getElementById('emi-value');
+  const subEl = document.getElementById('emi-sub');
+  const metricsEl = document.getElementById('emi-metrics');
+  if (!details) {
+    if (valEl) valEl.textContent = '₹0';
+    if (subEl) subEl.textContent = '—';
+    if (metricsEl) metricsEl.innerHTML = '';
+    return;
+  }
+  if (valEl) valEl.textContent = fmtINRExact(details.emi);
+  if (subEl) subEl.textContent = `${details.totalMonths} months · ${state.annualRate}% p.a. · ${state.frequency}`;
+  if (metricsEl) metricsEl.innerHTML = `
+    <div class="hero-metric"><p class="hero-metric-label">Interest</p><p class="hero-metric-value">${fmtINR(details.totalInterest, true)}</p></div>
+    <div class="hero-metric"><p class="hero-metric-label">Total</p><p class="hero-metric-value">${fmtINR(details.totalPayable, true)}</p></div>
+    <div class="hero-metric"><p class="hero-metric-label">Fee</p><p class="hero-metric-value">${fmtINR(details.totalFee)}</p></div>`;
 }
 
 function renderDashboard() {
@@ -198,6 +202,16 @@ function renderDashboard() {
     </div>`).join('');
 }
 
+function getChartColors() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    gridColor: s.getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.04)',
+    tickColor: s.getPropertyValue('--text-tertiary').trim() || '#90A4AE',
+    tooltipBg: s.getPropertyValue('--surface-elevated').trim() || '#1a1a2e',
+    textColor: s.getPropertyValue('--text-primary').trim() || '#333',
+  };
+}
+
 // ─── CHARTS ──────────────────────────────────────────
 function renderCharts() {
   if (!details) return;
@@ -210,6 +224,7 @@ function renderDoughnut() {
   const ctx = document.getElementById('canvas-doughnut');
   if (!ctx) return;
   if (charts.doughnut) charts.doughnut.destroy();
+  const cc = getChartColors();
   charts.doughnut = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -219,7 +234,7 @@ function renderDoughnut() {
     options: {
       responsive: true, maintainAspectRatio: true, cutout: '72%',
       animation: { duration: 600, easing: 'easeOutQuart' },
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a2e', titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'JetBrains Mono', size: 11 }, padding: 12, cornerRadius: 12, callbacks: { label: (c) => ' ' + c.label + ': ' + fmtINR(c.raw, true) } } },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: cc.tooltipBg, titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'JetBrains Mono', size: 11 }, padding: 12, cornerRadius: 12, callbacks: { label: (c) => ' ' + c.label + ': ' + fmtINR(c.raw, true) } } },
     },
   });
   document.getElementById('chart-center-label').innerHTML = `<div class="pct">${details.principalPct}%</div><div class="lbl">Principal</div>`;
@@ -229,6 +244,7 @@ function renderBalanceChart() {
   const ctx = document.getElementById('canvas-balance');
   if (!ctx) return;
   if (charts.balance) charts.balance.destroy();
+  const cc = getChartColors();
   const s = details.schedule;
   const rate = s.length > 36 ? 6 : s.length > 12 ? 3 : 1;
   const sampled = s.filter((_, i) => i % rate === 0 || i === s.length - 1);
@@ -244,8 +260,8 @@ function renderBalanceChart() {
     options: {
       responsive: true, maintainAspectRatio: true, interaction: { intersect: false, mode: 'index' },
       animation: { duration: 600, easing: 'easeOutQuart' },
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a2e', titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + fmtINR(c.raw, true) } } },
-      scales: { x: { display: false }, y: { grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#90A4AE', callback: v => fmtINR(v, true) } } },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: cc.tooltipBg, titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + fmtINR(c.raw, true) } } },
+      scales: { x: { display: false }, y: { grid: { color: cc.gridColor, drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: cc.tickColor, callback: v => fmtINR(v, true) } } },
     },
   });
 }
@@ -254,6 +270,7 @@ function renderTimelineChart() {
   const ctx = document.getElementById('canvas-timeline');
   if (!ctx) return;
   if (charts.timeline) charts.timeline.destroy();
+  const cc = getChartColors();
   charts.timeline = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -266,8 +283,8 @@ function renderTimelineChart() {
     options: {
       responsive: true, maintainAspectRatio: true,
       animation: { duration: 600, easing: 'easeOutQuart' },
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a2e', titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + fmtINR(c.raw, true) } } },
-      scales: { x: { grid: { display: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#90A4AE' } }, y: { stacked: true, grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#90A4AE', callback: v => fmtINR(v, true) } } },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: cc.tooltipBg, titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + fmtINR(c.raw, true) } } },
+      scales: { x: { grid: { display: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: cc.tickColor } }, y: { stacked: true, grid: { color: cc.gridColor, drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: cc.tickColor, callback: v => fmtINR(v, true) } } },
     },
   });
 }
@@ -313,6 +330,20 @@ function renderTable() {
   document.getElementById('pagination').innerHTML = pag;
 }
 
+// ─── SEGMENT INDICATOR ────────────────────────────────
+function updateSegmentIndicators() {
+  document.querySelectorAll('.segment-control').forEach(ctrl => {
+    const indicator = ctrl.querySelector('.segment-indicator');
+    if (!indicator) return;
+    const active = ctrl.querySelector('.segment-btn.active');
+    if (!active) return;
+    const ctrlRect = ctrl.getBoundingClientRect();
+    const btnRect = active.getBoundingClientRect();
+    indicator.style.width = btnRect.width + 'px';
+    indicator.style.transform = `translateX(${btnRect.left - ctrlRect.left - 3}px)`;
+  });
+}
+
 // ─── SLIDER STYLING ──────────────────────────────────
 function updateSliderStyles() {
   document.querySelectorAll('.slider').forEach(sl => {
@@ -340,13 +371,26 @@ function bindInputs() {
 
   bind('principal', 'principal', v => Math.max(10000, Math.min(100000000, v)));
   bind('rate', 'annualRate', v => Math.max(0.1, Math.min(50, v)));
-  bind('tenure', state.tenureMode === 'years' ? 'tenureYears' : 'tenureMonths', v => Math.max(1, v));
 
-  // Sliders
-  const bindSlider = (sliderId, key) => {
+  const tenureInp = document.getElementById('tenure');
+  if (tenureInp) {
+    tenureInp.addEventListener('input', () => {
+      let v = parseFloat(tenureInp.value);
+      if (isNaN(v)) return;
+      v = Math.max(1, v);
+      const key = state.tenureMode === 'years' ? 'tenureYears' : 'tenureMonths';
+      state[key] = v;
+      state.currentPreset = null;
+      debounceRender();
+    });
+    tenureInp.addEventListener('blur', () => validateField('tenure', state.tenureMode === 'years' ? 'tenureYears' : 'tenureMonths'));
+  }
+
+  const bindSlider = (sliderId, keyOrFn) => {
     const sl = document.getElementById(sliderId);
     if (!sl) return;
     sl.addEventListener('input', () => {
+      const key = typeof keyOrFn === 'function' ? keyOrFn() : keyOrFn;
       state[key] = parseFloat(sl.value);
       state.currentPreset = null;
       debounceRender();
@@ -354,7 +398,7 @@ function bindInputs() {
   };
   bindSlider('principal-slider', 'principal');
   bindSlider('rate-slider', 'annualRate');
-  bindSlider('tenure-slider', state.tenureMode === 'years' ? 'tenureYears' : 'tenureMonths');
+  bindSlider('tenure-slider', () => state.tenureMode === 'years' ? 'tenureYears' : 'tenureMonths');
   bindSlider('fee-slider', 'processingFeePct');
   bindSlider('downpayment-slider', 'downPayment');
   bindSlider('extrapayment-slider', 'extraPayment');
@@ -404,13 +448,15 @@ function setTenureMode(mode) {
     b.classList.toggle('active', isActive);
     b.setAttribute('aria-checked', isActive);
   });
-  // Update slider
   const sl = document.getElementById('tenure-slider');
   const inp = document.getElementById('tenure');
+  const sliderLabels = document.getElementById('tenure-slider')?.parentElement?.querySelector('.slider-labels');
   if (mode === 'years') {
     sl.max = 30; sl.value = state.tenureYears; inp.value = state.tenureYears; inp.max = 30;
+    if (sliderLabels) sliderLabels.innerHTML = '<span>1 yr</span><span>30 yr</span>';
   } else {
     sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
+    if (sliderLabels) sliderLabels.innerHTML = '<span>1 mo</span><span>360 mo</span>';
   }
   render();
 }
@@ -477,7 +523,14 @@ function handleSaveScenario() {
   if (!details) return;
   const name = prompt('Scenario name:', 'My Loan ' + (state.savedScenarios.length + 1));
   if (!name) return;
-  state.savedScenarios.push({ name, ...state, timestamp: Date.now() });
+  state.savedScenarios.push({
+    name, timestamp: Date.now(),
+    principal: state.principal, annualRate: state.annualRate,
+    tenureYears: state.tenureYears, tenureMonths: state.tenureMonths,
+    tenureMode: state.tenureMode, frequency: state.frequency,
+    processingFeePct: state.processingFeePct, downPayment: state.downPayment,
+    extraPayment: state.extraPayment,
+  });
   try { localStorage.setItem('emi_saved', JSON.stringify(state.savedScenarios)); } catch {}
   showToast('Scenario saved: ' + name, 'success');
 }
@@ -635,6 +688,7 @@ function toggleTheme() {
   localStorage.setItem('emi_theme', t);
   document.querySelector('.icon-sun').style.display = t === 'dark' ? 'none' : 'block';
   document.querySelector('.icon-moon').style.display = t === 'dark' ? 'block' : 'none';
+  if (details) renderCharts();
 }
 
 // ─── TOAST ───────────────────────────────────────────
@@ -675,6 +729,25 @@ function loadScenario(i) {
   const s = state.savedScenarios[i];
   if (!s) return;
   Object.assign(state, { principal: s.principal, annualRate: s.annualRate, tenureYears: s.tenureYears || Math.round(s.tenureMonths / 12), tenureMonths: s.tenureMonths, tenureMode: s.tenureMode || 'years', frequency: s.frequency || 'monthly', processingFeePct: s.processingFeePct || 1, downPayment: s.downPayment || 0, extraPayment: s.extraPayment || 0 });
+  const sl = document.getElementById('tenure-slider');
+  const inp = document.getElementById('tenure');
+  if (sl && inp) {
+    if (state.tenureMode === 'years') {
+      sl.max = 30; sl.value = state.tenureYears; inp.value = state.tenureYears; inp.max = 30;
+    } else {
+      sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
+    }
+  }
+  document.querySelectorAll('[data-tenure]').forEach(b => {
+    const isActive = b.dataset.tenure === state.tenureMode;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-checked', isActive);
+  });
+  document.querySelectorAll('[data-freq]').forEach(b => {
+    const isActive = b.dataset.freq === state.frequency;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-checked', isActive);
+  });
   render();
   toggleSavedPanel();
   showToast('Loaded: ' + s.name, 'success');
@@ -751,10 +824,30 @@ function parseURL() {
     state.annualRate = rate;
     state.tenureMonths = tenure;
     state.tenureYears = Math.round(tenure / 12);
-    state.tenureMode = 'months';
     state.processingFeePct = parseFloat(p.get('pf')) || 1;
     state.downPayment = parseFloat(p.get('dp')) || 0;
     state.extraPayment = parseFloat(p.get('ep')) || 0;
+    const tenureInYears = tenure % 12 === 0 && tenure / 12 <= 30;
+    if (tenureInYears) {
+      state.tenureMode = 'years';
+      state.tenureYears = tenure / 12;
+    } else {
+      state.tenureMode = 'months';
+    }
+    const sl = document.getElementById('tenure-slider');
+    const inp = document.getElementById('tenure');
+    if (sl && inp) {
+      if (state.tenureMode === 'years') {
+        sl.max = 30; sl.value = state.tenureYears; inp.value = state.tenureYears; inp.max = 30;
+      } else {
+        sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
+      }
+    }
+    document.querySelectorAll('[data-tenure]').forEach(b => {
+      const isActive = b.dataset.tenure === state.tenureMode;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-checked', isActive);
+    });
   }
 }
 
