@@ -428,14 +428,27 @@ body {
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: var(--sp-8);
-  align-items: start;
+  align-items: stretch;
+  min-height: calc(100vh - 160px);
 }
 @media (max-width: 1024px) {
-  .calculator-layout { grid-template-columns: 1fr; }
-  .result-column { order: -1; }
+  .calculator-layout { grid-template-columns: 1fr; min-height: auto; }
+  .result-column { order: -1; overflow: visible !important; max-height: none !important; }
 }
-.input-column { position: sticky; top: 80px; }
+.input-column { position: sticky; top: 80px; align-self: start; }
 @media (max-width: 1024px) { .input-column { position: static; } }
+
+.result-column {
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+  padding-right: var(--sp-2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.result-column::-webkit-scrollbar { width: 6px; }
+.result-column::-webkit-scrollbar-track { background: transparent; }
+.result-column::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.result-column::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
 /* ─── Input Components ───────────────────────── */
 .card-header .btn-ghost { margin-left: auto; }
