@@ -100,10 +100,128 @@
           <div class="presets-section">
             <label class="input-label">Quick Start</label>
             <div class="presets-grid" role="radiogroup" aria-label="Loan presets">
-              <button class="preset-btn" data-preset="home" onclick="applyPreset('home')"><span class="preset-icon">🏠</span><span class="preset-name">Home</span></button>
-              <button class="preset-btn" data-preset="car" onclick="applyPreset('car')"><span class="preset-icon">🚗</span><span class="preset-name">Car</span></button>
-              <button class="preset-btn" data-preset="edu" onclick="applyPreset('edu')"><span class="preset-icon">🎓</span><span class="preset-name">Education</span></button>
-              <button class="preset-btn" data-preset="personal" onclick="applyPreset('personal')"><span class="preset-icon">💰</span><span class="preset-name">Personal</span></button>
+              <button class="preset-btn" data-preset="home" onclick="applyPreset('home')">
+                <span class="preset-icon">
+                  <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="roofGrad" x1="32" y1="4" x2="32" y2="28" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#E8453C"/><stop offset="1" stop-color="#C62828"/>
+                      </linearGradient>
+                      <linearGradient id="wallGrad" x1="16" y1="26" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFF8E1"/><stop offset="1" stop-color="#FFE0B2"/>
+                      </linearGradient>
+                      <linearGradient id="doorGrad" x1="28" y1="36" x2="36" y2="58" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#5D4037"/><stop offset="1" stop-color="#3E2723"/>
+                      </linearGradient>
+                      <filter id="houseShadow"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.2"/></filter>
+                    </defs>
+                    <g filter="url(#houseShadow)">
+                      <polygon points="32,6 4,28 16,28 16,56 48,56 48,28 60,28" fill="url(#wallGrad)" stroke="#E0C8A0" stroke-width="0.5"/>
+                      <polygon points="32,4 2,30 16,30 16,28 48,28 48,30 62,30" fill="url(#roofGrad)"/>
+                      <rect x="28" y="38" width="8" height="18" rx="1" fill="url(#doorGrad)"/>
+                      <circle cx="34" cy="48" r="1" fill="#FFD54F"/>
+                      <rect x="12" y="34" width="8" height="7" rx="1" fill="#90CAF9" opacity="0.7"/>
+                      <line x1="16" y1="34" x2="16" y2="41" stroke="#BBDEFB" stroke-width="0.7"/>
+                      <line x1="12" y1="37.5" x2="20" y2="37.5" stroke="#BBDEFB" stroke-width="0.7"/>
+                      <rect x="44" y="34" width="8" height="7" rx="1" fill="#90CAF9" opacity="0.7"/>
+                      <line x1="48" y1="34" x2="48" y2="41" stroke="#BBDEFB" stroke-width="0.7"/>
+                      <line x1="44" y1="37.5" x2="52" y2="37.5" stroke="#BBDEFB" stroke-width="0.7"/>
+                      <rect x="16" y="54" width="32" height="4" rx="0.5" fill="#8D6E63"/>
+                      <polygon points="32,4 0,32 64,32" fill="none" stroke="#B71C1C" stroke-width="1" opacity="0.3"/>
+                    </g>
+                  </svg>
+                </span><span class="preset-name">Home</span>
+              </button>
+              <button class="preset-btn" data-preset="car" onclick="applyPreset('car')">
+                <span class="preset-icon">
+                  <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="carBody" x1="8" y1="24" x2="56" y2="48" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#EF5350"/><stop offset="1" stop-color="#C62828"/>
+                      </linearGradient>
+                      <linearGradient id="carTop" x1="18" y1="16" x2="46" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#EF9A9A"/><stop offset="1" stop-color="#E53935"/>
+                      </linearGradient>
+                      <linearGradient id="glassGrad" x1="20" y1="18" x2="44" y2="28" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#E3F2FD" stop-opacity="0.9"/><stop offset="1" stop-color="#90CAF9" stop-opacity="0.6"/>
+                      </linearGradient>
+                      <linearGradient id="wheelGrad" x1="17" y1="42" x2="23" y2="50" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#424242"/><stop offset="1" stop-color="#212121"/>
+                      </linearGradient>
+                      <filter id="carShadow"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-opacity="0.25"/></filter>
+                    </defs>
+                    <g filter="url(#carShadow)">
+                      <rect x="6" y="28" width="52" height="16" rx="4" fill="url(#carBody)"/>
+                      <path d="M18,28 L24,16 L40,16 L46,28" fill="url(#carTop)"/>
+                      <path d="M25,17 L40,17 L45,28 L20,28 Z" fill="url(#glassGrad)"/>
+                      <line x1="32" y1="17" x2="32" y2="28" stroke="#BBDEFB" stroke-width="0.8"/>
+                      <rect x="4" y="32" width="8" height="4" rx="2" fill="#FFEE58"/>
+                      <rect x="52" y="32" width="8" height="4" rx="2" fill="#FFEE58"/>
+                      <rect x="8" y="40" width="12" height="3" rx="1" fill="#EF5350" opacity="0.5"/>
+                      <circle cx="19" cy="46" r="7" fill="url(#wheelGrad)"/>
+                      <circle cx="19" cy="46" r="3.5" fill="#616161"/>
+                      <circle cx="19" cy="46" r="1.5" fill="#9E9E9E"/>
+                      <circle cx="45" cy="46" r="7" fill="url(#wheelGrad)"/>
+                      <circle cx="45" cy="46" r="3.5" fill="#616161"/>
+                      <circle cx="45" cy="46" r="1.5" fill="#9E9E9E"/>
+                      <rect x="22" y="34" width="20" height="1.5" rx="0.75" fill="#BDBDBD" opacity="0.4"/>
+                    </g>
+                  </svg>
+                </span><span class="preset-name">Car</span>
+              </button>
+              <button class="preset-btn" data-preset="edu" onclick="applyPreset('edu')">
+                <span class="preset-icon">
+                  <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="capGrad" x1="32" y1="10" x2="32" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#37474F"/><stop offset="1" stop-color="#1A237E"/>
+                      </linearGradient>
+                      <linearGradient id="tasselGrad" x1="52" y1="14" x2="52" y2="34" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFB300"/><stop offset="1" stop-color="#FF8F00"/>
+                      </linearGradient>
+                      <linearGradient id="scrollGrad" x1="22" y1="32" x2="42" y2="52" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFF8E1"/><stop offset="1" stop-color="#FFE082"/>
+                      </linearGradient>
+                      <filter id="eduShadow"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-opacity="0.2"/></filter>
+                    </defs>
+                    <g filter="url(#eduShadow)">
+                      <polygon points="32,12 4,26 32,38 60,26" fill="url(#capGrad)"/>
+                      <polygon points="32,12 4,26 32,20 60,26" fill="#263238" opacity="0.3"/>
+                      <line x1="52" y1="16" x2="52" y2="36" stroke="url(#tasselGrad)" stroke-width="2.5" stroke-linecap="round"/>
+                      <circle cx="52" cy="38" r="2.5" fill="#FFB300"/>
+                      <path d="M20,30 L20,46 C20,46 32,52 44,46 L44,30 L32,36 Z" fill="url(#scrollGrad)" stroke="#FFE082" stroke-width="0.5"/>
+                      <path d="M20,30 L32,36 L44,30" fill="none" stroke="#D4A030" stroke-width="0.8"/>
+                      <line x1="32" y1="36" x2="32" y2="50" stroke="#D4A030" stroke-width="0.6"/>
+                    </g>
+                  </svg>
+                </span><span class="preset-name">Education</span>
+              </button>
+              <button class="preset-btn" data-preset="personal" onclick="applyPreset('personal')">
+                <span class="preset-icon">
+                  <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="bagGrad" x1="18" y1="16" x2="46" y2="54" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFD54F"/><stop offset="1" stop-color="#F9A825"/>
+                      </linearGradient>
+                      <linearGradient id="bagDark" x1="20" y1="20" x2="44" y2="50" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFB300"/><stop offset="1" stop-color="#E65100"/>
+                      </linearGradient>
+                      <linearGradient id="dollarGrad" x1="28" y1="28" x2="36" y2="44" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FFF8E1"/><stop offset="1" stop-color="#FFE082"/>
+                      </linearGradient>
+                      <filter id="bagShadow"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.25"/></filter>
+                    </defs>
+                    <g filter="url(#bagShadow)">
+                      <ellipse cx="32" cy="52" rx="16" ry="6" fill="#E65100" opacity="0.3"/>
+                      <path d="M18,22 C18,20 20,18 24,18 L24,14 C24,12 26,10 28,10 L36,10 C38,10 40,12 40,14 L40,18 C44,18 46,20 46,22 L46,50 C46,52 44,54 42,54 L22,54 C20,54 18,52 18,50 Z" fill="url(#bagGrad)"/>
+                      <path d="M18,22 C18,20 20,18 24,18 L24,14 C24,12 26,10 28,10 L36,10 C38,10 40,12 40,14 L40,18 C44,18 46,20 46,22 L46,30 L18,30 Z" fill="url(#bagDark)" opacity="0.3"/>
+                      <rect x="26" y="6" width="12" height="10" rx="6" fill="none" stroke="#E6A817" stroke-width="3"/>
+                      <text x="32" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="url(#dollarGrad)" font-family="Arial">$</text>
+                      <ellipse cx="32" cy="22" rx="14" ry="4" fill="none" stroke="#E6A817" stroke-width="1" opacity="0.4"/>
+                    </g>
+                  </svg>
+                </span><span class="preset-name">Personal</span>
+              </button>
             </div>
           </div>
 
