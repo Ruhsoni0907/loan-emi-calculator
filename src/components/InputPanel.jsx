@@ -1,248 +1,174 @@
 import { useState, useCallback, useMemo } from 'react';
-import { LOAN_PRESETS, validateInputs } from '../lib/emiEngine.js';
+import { PRESETS, validateInputs } from '../lib/emiEngine.js';
 
-/**
- * InputPanel — Loan parameter inputs with presets, validation, and polished UX.
- */
-export default function InputPanel({ values, onChange, tenureMode, onTenureModeChange }) {
-  const { principal, annualRate, tenureYears, tenureMonths } = values;
+const FREQ_OPTIONS = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'half-yearly', label: 'Half-Yearly' },
+  { value: 'yearly', label: 'Yearly' },
+];
+
+export default function InputPanel({ values, onChange }) {
   const [activePreset, setActivePreset] = useState(null);
-  const [showErrors, setShowErrors] = useState(false);
 
-  const effectiveTenure = tenureMode === 'years' ? tenureYears : tenureMonths;
+  const tenureMode = values.tenureMode || 'years';
+  const effectiveTenure = tenureMode === 'years' ? values.tenureYears : values.tenureMonths;
   const maxTenure = tenureMode === 'years' ? 30 : 360;
-  const minTenure = 1;
 
   const validation = useMemo(
-    () => validateInputs(principal, annualRate, effectiveTenure),
-    [principal, annualRate, effectiveTenure]
+    () => validateInputs(values.principal, values.annualRate, effectiveTenure),
+    [values.principal, values.annualRate, effectiveTenure]
   );
 
-  const handlePreset = useCallback((preset) => {
-    setActivePreset(preset.id);
+  const set = useCallback((field, value) => {
+    setActivePreset(null);
+    onChange({ ...values, [field]: value });
+  }, [values, onChange]);
+
+  const setTenure = useCallback((years) => {
+    setActivePreset(null);
     onChange({
-      principal: preset.principal,
-      annualRate: preset.rate,
-      tenureYears: preset.tenureYears,
-      tenureMonths: preset.tenureYears * 12,
+      ...values,
+      tenureYears: years,
+      tenureMonths: years * 12,
     });
-    onTenureModeChange('years');
-  }, [onChange, onTenureModeChange]);
+  }, [values, onChange]);
 
-  const handleSliderChange = useCallback(
-    (field, rawValue) => {
-      const value = Number(rawValue);
-      if (isNaN(value)) return;
-      setActivePreset(null);
-      const next = { ...values };
-      if (field === 'principal') next.principal = value;
-      else if (field === 'annualRate') next.annualRate = value;
-      else if (field === 'tenure') {
-        if (tenureMode === 'years') next.tenureYears = value;
-        else next.tenureMonths = value;
-      }
-      onChange(next);
-    },
-    [values, onChange, tenureMode]
-  );
+  const handlePreset = useCallback((p) => {
+    setActivePreset(p.id);
+    onChange({
+      ...values,
+      principal: p.principal,
+      annualRate: p.rate,
+      tenureYears: p.tenure,
+      tenureMonths: p.tenure * 12,
+    });
+  }, [values, onChange]);
 
-  const handleNumberChange = useCallback(
-    (field, rawValue) => {
-      const value = parseFloat(rawValue);
-      if (isNaN(value)) return;
-      setActivePreset(null);
-      handleSliderChange(field, value);
-    },
-    [handleSliderChange]
-  );
-
-  const inputConfig = [
-    {
-      id: 'principal',
-      label: 'Loan Amount',
-      sublabel: 'Principal',
-      field: 'principal',
-      value: principal,
-      min: 50000,
-      max: 10000000,
-      step: 10000,
-      prefix: '₹',
-      suffix: '',
-      format: (v) => v.toLocaleString('en-IN'),
-      error: showErrors ? validation.errors.principal : null,
-    },
-    {
-      id: 'annualRate',
-      label: 'Interest Rate',
-      sublabel: 'per annum',
-      field: 'annualRate',
-      value: annualRate,
-      min: 0.1,
-      max: 30,
-      step: 0.1,
-      prefix: '',
-      suffix: '%',
-      format: (v) => v.toFixed(1),
-      error: showErrors ? validation.errors.annualRate : null,
-    },
-    {
-      id: 'tenure',
-      label: `Tenure`,
-      sublabel: tenureMode === 'years' ? 'years' : 'months',
-      field: 'tenure',
-      value: effectiveTenure,
-      min: minTenure,
-      max: maxTenure,
-      step: 1,
-      prefix: '',
-      suffix: tenureMode === 'years' ? ' yr' : ' mo',
-      format: (v) => String(v),
-      error: showErrors ? validation.errors.tenureMonths : null,
-    },
-  ];
+  const handleReset = useCallback(() => {
+    setActivePreset(null);
+    onChange({
+      principal: 1000000, annualRate: 8.5, tenureYears: 10, tenureMonths: 120,
+      tenureMode: 'years', frequency: 'monthly', processingFeePct: 1, gstPct: 18,
+      downPayment: 0, extraPayment: 0,
+    });
+  }, [onChange]);
 
   return (
-    <div className="space-y-8">
-      {/* Preset Templates */}
+    <div className="space-y-6">
+      {/* Presets */}
       <div>
-        <p className="text-xs font-semibold text-ink-faint uppercase tracking-wider mb-3">
-          Quick Start
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-faint)' }}>Quick Start</p>
         <div className="grid grid-cols-2 gap-2">
-          {LOAN_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => handlePreset(preset)}
-              className={`group relative p-3 rounded-xl text-left transition-all duration-200 cursor-pointer border-2 ${
-                activePreset === preset.id
-                  ? 'border-accent bg-accent/5 shadow-sm'
-                  : 'border-transparent bg-surface-cool hover:bg-white hover:border-border hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-start gap-2.5">
-                <span className="text-xl leading-none mt-0.5">{preset.icon}</span>
-                <div className="min-w-0">
-                  <p className={`text-sm font-semibold truncate ${
-                    activePreset === preset.id ? 'text-accent' : 'text-ink group-hover:text-ink'
-                  }`}>
-                    {preset.name}
-                  </p>
-                  <p className="text-xs text-ink-faint truncate">{preset.description}</p>
-                </div>
-              </div>
-              {activePreset === preset.id && (
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent animate-scale-in" />
-              )}
+          {PRESETS.map(p => (
+            <button key={p.id} onClick={() => handlePreset(p)}
+              className="p-3 rounded-2xl text-left transition-all duration-200 cursor-pointer"
+              style={{
+                background: activePreset === p.id ? p.color + '12' : 'var(--input-bg)',
+                border: activePreset === p.id ? '2px solid ' + p.color : '2px solid transparent',
+              }}>
+              <span className="text-lg">{p.icon}</span>
+              <p className="text-xs font-semibold mt-1" style={{ color: 'var(--text)' }}>{p.name}</p>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs font-medium text-ink-faint">or enter manually</span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
+      {/* Loan Amount */}
+      <Field label="Loan Amount" value={values.principal} onChange={v => set('principal', v)}
+        min={10000} max={100000000} step={10000} prefix="₹" format={v => v.toLocaleString('en-IN')}
+        error={validation.errors.principal} />
 
-      {/* Tenure mode toggle */}
+      {/* Interest Rate */}
+      <Field label="Interest Rate" sublabel="per annum" value={values.annualRate} onChange={v => set('annualRate', v)}
+        min={0.1} max={50} step={0.1} suffix="%" format={v => v.toFixed(1)}
+        error={validation.errors.annualRate} />
+
+      {/* Tenure */}
       <div>
-        <p className="text-xs font-semibold text-ink-faint uppercase tracking-wider mb-3">
-          Tenure Unit
-        </p>
-        <div className="flex items-center gap-1 bg-surface-cool rounded-xl p-1 border border-border w-fit">
-          <button
-            onClick={() => onTenureModeChange('years')}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
-              tenureMode === 'years'
-                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                : 'text-ink-muted hover:text-ink hover:bg-white'
-            }`}
-          >
+        <div className="flex items-baseline justify-between mb-2">
+          <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Tenure <span className="font-normal text-xs" style={{ color: 'var(--text-faint)' }}>{tenureMode === 'years' ? 'years' : 'months'}</span>
+          </label>
+          <span className="font-mono text-sm font-semibold" style={{ color: '#635BFF' }}>
+            {effectiveTenure} {tenureMode === 'years' ? 'yr' : 'mo'}
+          </span>
+        </div>
+        <input type="range" min={1} max={maxTenure} step={1} value={effectiveTenure}
+          onChange={e => setTenure(Number(e.target.value))}
+          className="w-full" />
+        <div className="flex justify-between mt-4">
+          <button onClick={() => set('tenureMode', 'years')}
+            className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all"
+            style={{ background: tenureMode === 'years' ? '#635BFF' : 'var(--input-bg)', color: tenureMode === 'years' ? 'white' : 'var(--text-secondary)', border: tenureMode === 'years' ? 'none' : '1px solid var(--card-border)' }}>
             Years
           </button>
-          <button
-            onClick={() => onTenureModeChange('months')}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
-              tenureMode === 'months'
-                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                : 'text-ink-muted hover:text-ink hover:bg-white'
-            }`}
-          >
+          <button onClick={() => set('tenureMode', 'months')}
+            className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all"
+            style={{ background: tenureMode === 'months' ? '#635BFF' : 'var(--input-bg)', color: tenureMode === 'months' ? 'white' : 'var(--text-secondary)', border: tenureMode === 'months' ? 'none' : '1px solid var(--card-border)' }}>
             Months
           </button>
         </div>
       </div>
 
-      {/* Input fields */}
-      <div className="space-y-5">
-        {inputConfig.map(({ id, label, sublabel, field, value, min, max, step, prefix, suffix, format, error }) => (
-          <div key={id} className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <label htmlFor={id} className="text-sm font-semibold text-ink">
-                {label}
-                <span className="text-ink-faint font-normal ml-1.5 text-xs">{sublabel}</span>
-              </label>
-              <div className="flex items-baseline gap-0.5">
-                {prefix && <span className="text-sm text-ink-faint font-mono">{prefix}</span>}
-                <span className="font-mono text-sm font-semibold text-primary tabular-nums">
-                  {format(value)}
-                </span>
-                {suffix && <span className="text-xs text-ink-faint font-mono">{suffix}</span>}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={value}
-                onChange={(e) => handleSliderChange(field, e.target.value)}
-                className="flex-1"
-                style={{ '--progress': `${((value - min) / (max - min)) * 100}%` }}
-                aria-label={`${label} slider`}
-              />
-              <div className="relative">
-                {prefix && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint text-sm font-mono pointer-events-none">
-                    {prefix}
-                  </span>
-                )}
-                <input
-                  id={id}
-                  type="number"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={value}
-                  onChange={(e) => handleNumberChange(field, e.target.value)}
-                  onBlur={() => setShowErrors(true)}
-                  className={`w-36 pl-7 pr-2 py-2.5 border rounded-xl text-sm font-mono text-ink bg-white transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/20 ${
-                    error ? 'border-danger bg-danger/5' : 'border-border hover:border-ink-faint'
-                  }`}
-                  aria-label={`${label} value`}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between text-[10px] text-ink-faint font-mono px-0.5">
-              <span>{prefix}{format(min)}{suffix}</span>
-              <span>{prefix}{format(max)}{suffix}</span>
-            </div>
-
-            {error && (
-              <p className="text-xs text-danger flex items-center gap-1.5 animate-fade-in">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                {error}
-              </p>
-            )}
-          </div>
-        ))}
+      {/* Payment Frequency */}
+      <div>
+        <label className="text-sm font-semibold block mb-2" style={{ color: 'var(--text)' }}>Payment Frequency</label>
+        <div className="grid grid-cols-2 gap-1.5" style={{ background: 'var(--input-bg)', borderRadius: 12, padding: 4 }}>
+          {FREQ_OPTIONS.map(f => (
+            <button key={f.value} onClick={() => set('frequency', f.value)}
+              className="py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all"
+              style={{ background: values.frequency === f.value ? '#635BFF' : 'transparent', color: values.frequency === f.value ? 'white' : 'var(--text-secondary)' }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Processing Fee */}
+      <Field label="Processing Fee" value={values.processingFeePct} onChange={v => set('processingFeePct', v)}
+        min={0} max={5} step={0.1} suffix="%" format={v => v.toFixed(1)} />
+
+      {/* Down Payment */}
+      <Field label="Down Payment" value={values.downPayment} onChange={v => set('downPayment', v)}
+        min={0} max={values.principal * 0.5} step={10000} prefix="₹" format={v => v.toLocaleString('en-IN')} />
+
+      {/* Extra Monthly Payment */}
+      <Field label="Extra Monthly Payment" sublabel="over & above EMI" value={values.extraPayment} onChange={v => set('extraPayment', v)}
+        min={0} max={100000} step={1000} prefix="₹" format={v => v.toLocaleString('en-IN')} />
+
+      {/* Reset */}
+      <button onClick={handleReset} className="btn btn-ghost w-full justify-center">
+        Reset Calculator
+      </button>
+    </div>
+  );
+}
+
+function Field({ label, sublabel, value, onChange, min, max, step, prefix, suffix, format, error }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+          {label} {sublabel && <span className="font-normal text-xs" style={{ color: 'var(--text-faint)' }}>{sublabel}</span>}
+        </label>
+        <span className="font-mono text-sm font-semibold" style={{ color: '#635BFF' }}>
+          {prefix}{format(value)}{suffix}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(Number(e.target.value))} className="flex-1" />
+        <div className="relative">
+          {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono" style={{ color: 'var(--text-faint)' }}>{prefix}</span>}
+          <input type="number" min={min} max={max} step={step} value={value}
+            onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange(v); }}
+            className={prefix ? 'pl-7 pr-2 w-32' : 'px-3 w-32'}
+            style={error ? { borderColor: '#E53935' } : {}} />
+          {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono" style={{ color: 'var(--text-faint)' }}>{suffix}</span>}
+        </div>
+      </div>
+      {error && <p className="text-xs mt-1.5" style={{ color: '#E53935' }}>⚠ {error}</p>}
     </div>
   );
 }
