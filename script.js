@@ -16,9 +16,9 @@ const state = {
 };
 
 const PRESETS = {
-  home: { principal: 5000000, annualRate: 8.5, tenure: 20, color: '#6366F1' },
-  car: { principal: 800000, annualRate: 9.0, tenure: 5, color: '#10B981' },
-  edu: { principal: 2000000, annualRate: 10.5, tenure: 10, color: '#8B5CF6' },
+  home: { principal: 5000000, annualRate: 8.5, tenure: 20, color: '#2563EB' },
+  car: { principal: 800000, annualRate: 9.0, tenure: 5, color: '#22C55E' },
+  edu: { principal: 2000000, annualRate: 10.5, tenure: 10, color: '#6366F1' },
   personal: { principal: 500000, annualRate: 12.0, tenure: 3, color: '#F59E0B' },
 };
 
@@ -186,12 +186,12 @@ function renderHero() {
 function renderDashboard() {
   if (!details) { document.getElementById('dashboard-cards').innerHTML = ''; return; }
   const cards = [
-    { label: 'Monthly EMI', value: fmtINRExact(details.emi), icon: '₹', color: '#6366F1', bg: 'rgba(99,102,241,0.1)' },
+    { label: 'Monthly EMI', value: fmtINRExact(details.emi), icon: '₹', color: '#2563EB', bg: 'rgba(37,99,235,0.1)' },
     { label: 'Total Interest', value: fmtINR(details.totalInterest, true), icon: '📈', color: '#EF4444', bg: 'rgba(239,68,68,0.1)' },
-    { label: 'Principal', value: fmtINR(details.effectivePrincipal, true), icon: '🏦', color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+    { label: 'Principal', value: fmtINR(details.effectivePrincipal, true), icon: '🏦', color: '#22C55E', bg: 'rgba(34,197,94,0.1)' },
     { label: 'Processing Fee', value: fmtINR(details.totalFee), icon: '📋', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
-    { label: 'Total Payment', value: fmtINR(details.totalPayableWithFee, true), icon: '💳', color: '#6366F1', bg: 'rgba(99,102,241,0.1)' },
-    { label: 'Total Months', value: details.totalMonths, icon: '📅', color: '#51525C', bg: 'rgba(81,82,92,0.1)' },
+    { label: 'Total Payment', value: fmtINR(details.totalPayableWithFee, true), icon: '💳', color: '#2563EB', bg: 'rgba(37,99,235,0.1)' },
+    { label: 'Total Months', value: details.totalMonths, icon: '📅', color: '#64748B', bg: 'rgba(100,116,139,0.1)' },
   ];
   document.getElementById('dashboard-cards').innerHTML = cards.map(c => `
     <div class="dash-card" style="--accent-color:${c.color}">
@@ -229,7 +229,7 @@ function renderDoughnut() {
     type: 'doughnut',
     data: {
       labels: ['Principal', 'Interest'],
-      datasets: [{ data: [details.effectivePrincipal, details.totalInterest], backgroundColor: ['#6366F1', '#EF4444'], borderWidth: 0, borderRadius: 4, spacing: 4 }],
+      datasets: [{ data: [details.effectivePrincipal, details.totalInterest], backgroundColor: ['#2563EB', '#EF4444'], borderWidth: 0, borderRadius: 4, spacing: 4 }],
     },
     options: {
       responsive: true, maintainAspectRatio: true, cutout: '72%',
@@ -253,7 +253,7 @@ function renderBalanceChart() {
     data: {
       labels: sampled.map(r => 'M' + r.month),
       datasets: [
-        { label: 'Balance', data: sampled.map(r => r.closing), borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.08)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+        { label: 'Balance', data: sampled.map(r => r.closing), borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.08)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
         { label: 'Cum. Interest', data: sampled.map(r => r.totalInterestPaid), borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
       ],
     },
@@ -276,7 +276,7 @@ function renderTimelineChart() {
     data: {
       labels: details.yearly.map(y => 'Y' + y.year),
       datasets: [
-        { label: 'Principal', data: details.yearly.map(y => y.principal), backgroundColor: '#6366F1', borderRadius: 6 },
+        { label: 'Principal', data: details.yearly.map(y => y.principal), backgroundColor: '#2563EB', borderRadius: 6 },
         { label: 'Interest', data: details.yearly.map(y => y.interest), backgroundColor: '#EF4444', borderRadius: 6 },
       ],
     },
@@ -544,7 +544,7 @@ function renderCompare() {
     ];
   }
   const results = compareLoans(state.scenarios);
-  const colors = ['#6366F1', '#10B981', '#EF4444'];
+  const colors = ['#2563EB', '#22C55E', '#EF4444'];
 
   // Cards
   document.getElementById('compare-cards').innerHTML = results.map((r, i) => {
