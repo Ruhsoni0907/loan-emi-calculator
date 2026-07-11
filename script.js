@@ -114,6 +114,7 @@ function compareLoans(scenarios) {
 }
 
 // ─── FORMATTING ──────────────────────────────────────
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 function fmtINR(v, compact = false) {
   if (v == null || isNaN(v)) return '—';
   if (compact) {
@@ -155,13 +156,16 @@ function updateDisplayValues() {
   if (el('principal')) el('principal').value = state.principal;
   if (el('rate')) el('rate').value = state.annualRate;
   if (el('tenure')) el('tenure').value = state.tenureMode === 'years' ? state.tenureYears : state.tenureMonths;
-  if (el('fee-slider')) el('fee-slider').value = state.processingFeePct;
-  if (el('downpayment-slider')) el('downpayment-slider').value = state.downPayment;
-  if (el('extrapayment-slider')) el('extrapayment-slider').value = state.extraPayment;
+  if (el('principal-slider')) { el('principal-slider').value = state.principal; updateSliderFill(el('principal-slider')); }
+  if (el('rate-slider')) { el('rate-slider').value = state.annualRate; updateSliderFill(el('rate-slider')); }
+  if (el('tenure-slider')) { el('tenure-slider').value = state.tenureMode === 'years' ? state.tenureYears : state.tenureMonths; updateSliderFill(el('tenure-slider')); }
+  if (el('fee-slider')) { el('fee-slider').value = state.processingFeePct; updateSliderFill(el('fee-slider')); }
+  if (el('downpayment-slider')) { el('downpayment-slider').value = state.downPayment; updateSliderFill(el('downpayment-slider')); }
+  if (el('extrapayment-slider')) { el('extrapayment-slider').value = state.extraPayment; updateSliderFill(el('extrapayment-slider')); }
   // Update max for down payment slider
   const dpMax = Math.floor(state.principal * 0.5);
   const dpSlider = el('downpayment-slider');
-  if (dpSlider) { dpSlider.max = dpMax; if (state.downPayment > dpMax) { state.downPayment = dpMax; dpSlider.value = dpMax; } }
+  if (dpSlider) { dpSlider.max = dpMax; if (state.downPayment > dpMax) { state.downPayment = dpMax; dpSlider.value = dpMax; } updateSliderFill(dpSlider); }
   setText('dp-max-label', fmtINR(dpMax, true));
 }
 
@@ -347,9 +351,27 @@ function updateSegmentIndicators() {
 // ─── SLIDER STYLING ──────────────────────────────────
 function updateSliderStyles() {
   document.querySelectorAll('.slider').forEach(sl => {
-    const pct = ((sl.value - sl.min) / (sl.max - sl.min)) * 100;
-    sl.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--bg-secondary) ${pct}%, var(--bg-secondary) 100%)`;
+    updateSliderFill(sl);
   });
+}
+
+function updateSliderFill(sl) {
+  const pct = ((sl.value - sl.min) / (sl.max - sl.min)) * 100;
+  sl.style.setProperty('--slider-pct', pct + '%');
+}
+
+function syncSliderToInput(sliderId, key) {
+  const el = (id) => document.getElementById(id);
+  if (sliderId === 'principal-slider' && el('principal')) el('principal').value = state.principal;
+  if (sliderId === 'rate-slider' && el('rate')) el('rate').value = state.annualRate;
+  if (sliderId === 'tenure-slider' && el('tenure')) el('tenure').value = state.tenureMode === 'years' ? state.tenureYears : state.tenureMonths;
+  if (sliderId === 'fee-slider') setText('fee-display', state.processingFeePct.toFixed(1) + '%');
+  if (sliderId === 'downpayment-slider') setText('downpayment-display', fmtINR(state.downPayment));
+  if (sliderId === 'extrapayment-slider') setText('extrapayment-display', fmtINR(state.extraPayment));
+  setText('principal-display', fmtINR(state.principal));
+  setText('rate-display', state.annualRate.toFixed(1) + '%');
+  setText('tenure-display', (state.tenureMode === 'years' ? state.tenureYears : state.tenureMonths) + ' ' + (state.tenureMode === 'years' ? 'yr' : 'mo'));
+  setText('tenure-unit', state.tenureMode === 'years' ? 'yr' : 'mo');
 }
 
 // ─── EVENT HANDLERS ──────────────────────────────────
@@ -389,10 +411,13 @@ function bindInputs() {
   const bindSlider = (sliderId, keyOrFn) => {
     const sl = document.getElementById(sliderId);
     if (!sl) return;
+    updateSliderFill(sl);
     sl.addEventListener('input', () => {
       const key = typeof keyOrFn === 'function' ? keyOrFn() : keyOrFn;
       state[key] = parseFloat(sl.value);
       state.currentPreset = null;
+      updateSliderFill(sl);
+      syncSliderToInput(sliderId, key);
       debounceRender();
     });
   };
@@ -458,6 +483,7 @@ function setTenureMode(mode) {
     sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
     if (sliderLabels) sliderLabels.innerHTML = '<span>1 mo</span><span>360 mo</span>';
   }
+  updateSliderFill(sl);
   render();
 }
 
@@ -503,6 +529,7 @@ function handleReset() {
   const sl = document.getElementById('tenure-slider');
   const inp = document.getElementById('tenure');
   sl.max = 30; sl.value = 10; inp.value = 10; inp.max = 30;
+  updateSliderFill(sl);
   render();
   showToast('Calculator reset', 'success');
 }
@@ -737,6 +764,7 @@ function loadScenario(i) {
     } else {
       sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
     }
+    updateSliderFill(sl);
   }
   document.querySelectorAll('[data-tenure]').forEach(b => {
     const isActive = b.dataset.tenure === state.tenureMode;
@@ -842,6 +870,7 @@ function parseURL() {
       } else {
         sl.max = 360; sl.value = state.tenureMonths; inp.value = state.tenureMonths; inp.max = 360;
       }
+      updateSliderFill(sl);
     }
     document.querySelectorAll('[data-tenure]').forEach(b => {
       const isActive = b.dataset.tenure === state.tenureMode;
