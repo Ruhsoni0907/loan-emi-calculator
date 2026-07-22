@@ -5,10 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EMI Calculator — Loan Planner</title>
   <meta name="description" content="Professional loan EMI calculator with amortization schedules, comparison mode, and PDF export.">
+  <!-- Open Graph — enables rich previews on WhatsApp, Twitter, Slack, LinkedIn -->
+  <meta property="og:title" content="EMI Calculator — Professional Loan Planner">
+  <meta property="og:description" content="Calculate your loan EMI instantly. Compare scenarios, view amortization schedules, and export results. Free and no sign-up required.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ruhsoni0907.github.io/loan-emi-calculator/">
+  <meta property="og:image" content="https://ruhsoni0907.github.io/loan-emi-calculator/public/og-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="EMI Calculator — Professional Loan Planner">
+  <meta name="twitter:description" content="Calculate your loan EMI instantly. Compare scenarios, view amortization schedules, and export results.">
+  <link rel="canonical" href="https://ruhsoni0907.github.io/loan-emi-calculator/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366F1'/><text x='16' y='23' text-anchor='middle' font-family='system-ui' font-weight='700' font-size='18' fill='white'>₹</text></svg>">
 </head>
 <body>
@@ -350,7 +360,7 @@
       <section class="result-column" aria-label="Calculation results">
         <!-- EMI Hero -->
         <div class="emi-hero" id="emi-hero">
-          <p class="emi-hero-label">Monthly EMI</p>
+          <p class="emi-hero-label" id="emi-hero-label">Monthly EMI</p>
           <p class="emi-hero-value" id="emi-value" aria-live="polite" aria-atomic="true">₹0</p>
           <p class="emi-hero-sub" id="emi-sub">—</p>
           <div class="emi-hero-metrics" id="emi-metrics"></div>

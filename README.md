@@ -1,75 +1,62 @@
-# Loan EMI Calculator — Portfolio Case Study
+# Loan EMI Calculator — Professional Loan Planner
 
-## Problem
+A high-performance, responsive financial web application for calculating Equated Monthly Installments (EMI), visualizing amortization schedules, and comparing loan scenarios side-by-side.
 
-Borrowers need to understand the true cost of a loan before committing. Most online EMI calculators are functional but generic — they show numbers without context, lack comparison tools, and don't communicate the trade-offs between lower monthly payments and higher total interest. This project builds a calculator that makes those trade-offs visible and actionable.
+## 🚀 Key Features
 
-## Key Design & Technical Decisions
+- **Interactive EMI Calculation**: Real-time updates as you adjust Loan Amount, Interest Rate, Tenure, Down Payment, Processing Fee, and Extra Monthly Payments.
+- **Flexible Payment Frequencies**: Supports Monthly, Quarterly, and Half-Yearly repayment schedules.
+- **Amortization Schedule**: Searchable, sortable, paginated schedule available in Yearly and Monthly aggregations.
+- **Side-by-Side Loan Comparison**: Compare 2–3 loan scenarios with dynamic delta insights highlighting cost vs. monthly burden trade-offs.
+- **Visual Analytics**: Interactive Chart.js visualizations including Doughnut split, Balance burn-down, and Yearly timeline bar charts.
+- **Data Export & Sharing**: 
+  - Export amortization schedule to CSV (Excel compatible with BOM).
+  - Print-formatted PDF report.
+  - One-click URL parameter state sharing (e.g. `?p=1000000&r=8.5&t=120`).
+- **Persistence & Presets**: Quick-start presets (Home, Car, Education, Personal) and local storage for saved scenarios.
+- **Design System & UX**: Glassmorphism aesthetic, theme toggle (Dark/Light mode), responsive layout, and full keyboard shortcut support.
 
-### Architecture
-- **Separation of concerns**: All calculation logic lives in `src/lib/emiEngine.js` — a pure, framework-agnostic module with zero React dependencies. This makes the engine independently testable, portable to any framework, and trivially replaceable.
-- **Component decomposition**: Each visual concern is its own component (`InputPanel`, `ResultSummary`, `BurnDownChart`, `AmortizationTable`, `ComparisonMode`, `PDFExport`). State flows down, callbacks flow up. No prop drilling beyond one level.
-- **Memoization**: Derived values (EMI, schedule, yearly aggregates, comparison deltas) are computed with `useMemo` so they only recalculate when inputs actually change, not on every render.
+## 📐 Calculation Engine & Formula
 
-### Calculation Engine
-The standard reducing-balance EMI formula:
+Uses standard reducing-balance EMI calculation:
 
 ```
 EMI = [P × R × (1+R)^N] / [(1+R)^N − 1]
 ```
 
-where:
-- **P** = Principal (loan amount)
-- **R** = Monthly interest rate = Annual rate / 12 / 100
-- **N** = Tenure in months
+Where:
+- **P** = Effective Principal (`Principal - Down Payment`)
+- **R** = Rate per period (`Annual Rate / Periods per Year / 100`)
+- **N** = Total periods (`Tenure in Years × Periods per Year`)
 
-**Rounding strategy**: All intermediate calculations use full floating-point precision. Final values are rounded to 2 decimal places. The amortization schedule's last month is special-cased: the principal component equals the remaining opening balance, ensuring the closing balance is exactly 0 with no rounding drift.
+### Key Algorithmic Safeguards
+- **Zero Amortization Drift**: The final period special-cases the principal component to match exact remaining balance, guaranteeing a final balance of 0.
+- **0% Interest Rate Handling**: Gracefully falls back to linear principal division (`P / N`).
+- **Input Validation**: Strict validation prevents invalid inputs (e.g. negative values, tenure = 0, rate > 50%).
 
-**0% interest**: Handled as a simple `P / N` division.
+## 🛠️ Tech Stack
 
-### Visual Identity
-- **Palette**: Deep teal (#0D4C4A) for primary/trust, warm amber (#E8A838) for accent/warmth, off-white (#F7F5F0) background for a warm, non-generic feel.
-- **Typography**: Inter for display and body text (clean, professional), JetBrains Mono for all numerical data (tabular nums, clear digit distinction).
-- **Signature element**: The comparison mode's delta callouts — plain-language sentences explaining exactly how scenarios differ in cost and monthly burden, paired with a grouped bar chart.
+- **HTML5**: Semantic markup, ARIA accessibility standards, Open Graph & Twitter meta tags.
+- **Vanilla CSS3**: Design system tokens, custom CSS variables, Glassmorphism, animations, `@media print` rules.
+- **JavaScript (ES6+)**: Pure functional calculation engine, DOM management, async event handling.
+- **Chart.js (v4.4.7)**: Responsive canvas charts with custom dark/light theme integration.
 
-### Comparison Mode
-The comparison feature (2–3 configurable scenarios) computes dynamic deltas rather than hardcoding which is "better." The callout language adapts: "Scenario B saves ₹X in total interest but costs ₹Y more per month than Scenario A" — because the right choice depends on whether the user prioritizes lower EMI or lower total cost.
+## 📁 File Structure
 
-## Assumptions
-- Fixed interest rate for the entire tenure (no floating-rate simulation)
-- Equal monthly installments (standard EMI)
-- Interest calculated on reducing balance
-- No processing fees, prepayments, or penal charges
-- Indian Rupee (₹) as the display currency
-
-## Known Limitations
-- **Fixed rate only**: Real loans may have floating rates linked to a benchmark
-- **No prepayment modeling**: Prepayments change the amortization schedule fundamentally
-- **Single currency**: Hardcoded to ₹; could be parameterized
-- **No inflation adjustment**: Real cost of money over 20-30 years is significant
-- **Comparison mode max 3 scenarios**: Limited by horizontal space on desktop
-
-## What I'd Build Next
-- **Prepayment / part-payment simulator**: Let users model lump-sum prepayments and see the impact on tenure and total interest
-- **Step-up EMI**: Model increasing EMIs (e.g., 10% annual increase) to show how aggressive early repayment shortens tenure
-- **Rate sensitivity analysis**: Plot how total cost changes across a range of interest rates
-- **Export options**: CSV export for the amortization schedule, shareable link with encoded parameters
-- **Comparison history**: localStorage-backed history of past comparisons
-- **Dark mode**: System-preference-aware theme toggle
-- **Multi-currency support**: Configurable currency symbol and locale formatting
-
-## Running the Project
-
-```bash
-npm install
-npm run dev        # Start dev server
-npm run build      # Production build
-npx vitest run     # Run unit tests
+```
+loan-emi-calculator/
+├── index.html        # Main HTML layout & modal structures
+├── style.css         # Complete design system tokens & component styles
+├── script.js        # Engine, state management, chart rendering, & event listeners
+├── public/           # Media assets and icons
+└── README.md         # Documentation
 ```
 
-## Tech Stack
-- React 19 + Vite 8
-- Tailwind CSS 4
-- Recharts (charts)
-- jsPDF (PDF export)
-- Vitest + Testing Library (tests)
+## 💻 Running the Application
+
+No build tools or node packages required. Simply open `index.html` in any modern web browser or serve it via a local static web server (e.g., VS Code Live Server or Python `http.server`).
+
+```bash
+# Example static server using Python:
+python -m http.server 8000
+```

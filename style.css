@@ -971,6 +971,27 @@ body {
   background: transparent; border: none; border-bottom: 1px dashed; outline: none;
   font-family: var(--font-body);
 }
+/* New: typed number inputs inside compare cards (replaces XSS-risky contenteditable) */
+.compare-inline-input {
+  width: 100px; padding: 3px 8px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  outline: none;
+  text-align: right;
+  -moz-appearance: textfield;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.compare-inline-input::-webkit-inner-spin-button,
+.compare-inline-input::-webkit-outer-spin-button { opacity: 0; }
+.compare-inline-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+  background: var(--surface-1);
+}
 .compare-field { display: flex; justify-content: space-between; margin-bottom: var(--sp-2); }
 .compare-field-label { font-size: 11px; color: var(--text-tertiary); font-weight: 600; }
 .compare-field-value { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
